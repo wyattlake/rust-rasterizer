@@ -1,20 +1,23 @@
 use rust_rasterizer::core::canvas::Canvas;
-use rust_rasterizer::core::color::Color;
-use rust_rasterizer::core::line::*;
+use rust_rasterizer::rendering::obj::*;
 use std::time::Instant;
+use std::fs::File;
 
 fn main() {
     //Width and height of the scene
-    const WIDTH: usize = 200;
-    const HEIGHT: usize = 200;
+    const WIDTH: usize = 1000;
+    const HEIGHT: usize = 1000;
 
     //Canvas where color is stored
     let mut canvas = Canvas::new(WIDTH, HEIGHT);
 
+    let file = File::open("src/models/teapot.obj").unwrap();
+    let mut model = Model::new(file);
+
     println!("Render started...");
     let now = Instant::now();
 
-    draw_line(0, 0, 100, 199, &mut canvas, &Color(1.0, 1.0, 1.0));
+    render_wireframe(&model, &mut canvas);
 
     let duration = now.elapsed();
     println!("Image successfully rendered");
