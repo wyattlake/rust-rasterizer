@@ -78,21 +78,22 @@ pub fn render_wireframe(model: &Model, canvas: &mut Canvas) {
 }
 
 pub fn render_model(model: &Model, canvas: &mut Canvas) {
+    let mut zbuffer: Vec<f32> = vec![-f32::INFINITY; canvas.width * canvas.height];
     for index in 0..model.faces.len() {
         let face = &model.faces[index];
-        let mut screen_points: Vec<Vec2> = Vec::with_capacity(3);
+        let mut screen_points: Vec<Vec3> = Vec::with_capacity(3);
         let mut world_points: Vec<Vec3> = Vec::with_capacity(3);
         let light_direction = Vec3(0.0, 0.0, -1.0);
         for face_index in 0..3 {
             //Computes the screen and face coordinates for each vertice on the face
             let v = &model.vertices[face[face_index]];
-            screen_points.push(Vec2((v.0 + 1.0) * canvas.width as f32 / 10.0, (v.1 + 1.0) * canvas.width as f32 / 10.0));
+            screen_points.push(Vec3((v.0 + 1.0) * canvas.width as f32 / 8.0, (v.1 + 1.0) * canvas.width as f32 / 8.0, v.2));
             world_points.push(v.clone());
         }
         let normal = (&world_points[2] - &world_points[0]) * (&world_points[1] - &world_points[0]);
         let intensity = Vec3::dot(&normal.normalize(), &light_direction) * 1.1;
         if intensity > 0.0 {
-            draw_triangle(screen_points, canvas, &Color(intensity, intensity, intensity))
+            draw_triangle(screen_points, &mut zbuffer, canvas, &Color(intensity, intensity, intensity))
         }
     }
 }

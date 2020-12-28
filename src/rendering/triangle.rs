@@ -4,7 +4,7 @@ use crate::core::canvas::Canvas;
 use crate::misc::utils::*;
 
 //Converts a point to barycentric coordinates
-pub fn barycentric(x: f32, y: f32, points: &Vec<Vec2>) -> Vec3 {
+pub fn barycentric(x: f32, y: f32, points: &Vec<Vec3>) -> Vec3 {
     let u = Vec3(points[2].get(0) - points[0].get(0), points[1].get(0) - points[0].get(0), points[0].get(0) - x) * Vec3(points[2].get(1) - points[0].get(1), points[1].get(1) - points[0].get(1), points[0].get(1) - y);
     
     //If the absolute value of the z coordinate of Vec3 is negative, then the triangle is degenerate
@@ -17,7 +17,7 @@ pub fn barycentric(x: f32, y: f32, points: &Vec<Vec2>) -> Vec3 {
 }
 
 //Draws a triangle on a canvas given its vertices
-pub fn draw_triangle(points: Vec<Vec2>, canvas: &mut Canvas, color: &Color) {
+pub fn draw_triangle(points: Vec<Vec3>, zbuffer: &mut Vec<f32>, canvas: &mut Canvas, color: &Color) {
     //Mutable min and max of the bounding box
     let mut bounding_box_min = Vec2(canvas.width as f32 - 1.0, canvas.height as f32 - 1.0);
     let mut bounding_box_max = Vec2(0.0, 0.0);
@@ -41,8 +41,17 @@ pub fn draw_triangle(points: Vec<Vec2>, canvas: &mut Canvas, color: &Color) {
             if barycentric_point.0 < 0.0 || barycentric_point.1 < 0.0 || barycentric_point.2 < 0.0 {
                 continue;
             }
-            //Colors points in triangle
-            canvas.set(color.clone(), x, y);
+            //Finds the z value of the current point
+            let mut z = 0.0;
+            for index in 0i32..3 {
+                z += points[index as usize].get(2) * barycentric_point.get(index);
+            }
+
+            //Colors points in triangle if the z index is greater than the current z
+            if zbuffer[x as usize + y as usize * canvas.width] < z {
+                zbuffer[x as usize + y as usize * canvas.width] = z;
+                canvas.set(color.clone(), x, y);
+            }
         }
     }
 }

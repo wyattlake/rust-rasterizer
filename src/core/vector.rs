@@ -30,6 +30,24 @@ impl Vec3 {
     pub fn reflect(vector: &Vec3, normal: &Vec3) -> Vec3 {
         vector - (normal * 2.0 * Vec3::dot(vector, normal))
     }
+
+    pub fn get(&self, index: i32) -> f32 {
+        match index {
+            0 => self.0,
+            1 => self.1,
+            2 => self.2,
+            _ => panic!("Index is out of Vec2 range"),
+        }
+    }
+
+    pub fn set(&mut self, index: i32, value: f32) {
+        match index {
+            0 => self.0 = value,
+            1 => self.1 = value,
+            2 => self.2 = value,
+            _ => panic!("Index is out of Vec2 range"),
+        }
+    }
 }
 
 
