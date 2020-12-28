@@ -39,10 +39,10 @@ pub fn draw_line(x0_input: i32, y0_input: i32, x1_input: i32, y1_input: i32, can
     //Determines coordinates and sets the color on the canvas
     for x in x0..(x1 + 1) {
         if steep {
-            canvas.set(color.clone(), y, x);
+            canvas.set(x as usize, y as usize, color.clone());
         }
         else {
-            canvas.set(color.clone(), x, y);
+            canvas.set(x as usize, y as usize, color.clone());
         }
 
         error2 += derror2;

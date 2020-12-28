@@ -1,41 +1,42 @@
 use crate::core::vector::*;
 use crate::core::color::Color;
 use crate::core::canvas::Canvas;
-use crate::misc::utils::*;
+use crate::rendering::obj::*;
+use std::cmp;
 
 //Converts a point to barycentric coordinates
-pub fn barycentric(x: f32, y: f32, points: &Vec<Vec3>) -> Vec3 {
-    let u = Vec3(points[2].get(0) - points[0].get(0), points[1].get(0) - points[0].get(0), points[0].get(0) - x) * Vec3(points[2].get(1) - points[0].get(1), points[1].get(1) - points[0].get(1), points[0].get(1) - y);
+pub fn barycentric(x: f32, y: f32, points: &Vec<Vec3u>) -> Vec3f {
+    let u = Vec3f(points[2].get(0) as f32 - points[0].get(0) as f32, points[1].get(0) as f32 - points[0].get(0) as f32, points[0].get(0) as f32 - x) * Vec3f(points[2].get(1) as f32 - points[0].get(1) as f32, points[1].get(1) as f32 - points[0].get(1) as f32, points[0].get(1) as f32 - y);
     
     //If the absolute value of the z coordinate of Vec3 is negative, then the triangle is degenerate
     if u.2.abs() < 1.0 {
-        Vec3(-1.0, 1.0, 1.0)
+        Vec3f(-1.0, 1.0, 1.0)
     }
     else {
-        Vec3(1.0 - (u.0 + u.1) / u.2, u.1 / u.2, u.0 / u.2)
+        Vec3f(1.0 - (u.0 + u.1) / u.2, u.1 / u.2, u.0 / u.2)
     }
 }
 
 //Draws a triangle on a canvas given its vertices
-pub fn draw_triangle(points: Vec<Vec3>, zbuffer: &mut Vec<f32>, canvas: &mut Canvas, color: &Color) {
+pub fn draw_triangle(points: Vec<Vec3u>, zbuffer: &mut Vec<f32>, canvas: &mut Canvas, color: &Color) {
     //Mutable min and max of the bounding box
-    let mut bounding_box_min = Vec2(canvas.width as f32 - 1.0, canvas.height as f32 - 1.0);
-    let mut bounding_box_max = Vec2(0.0, 0.0);
+    let mut bounding_box_min = Vec2u(canvas.width - 1, canvas.height - 1);
+    let mut bounding_box_max = Vec2u(0, 0);
     
     //Used to clamp the bounding box
-    let clamp = Vec2(canvas.width as f32 - 1.0, canvas.height as f32 - 1.0);
+    let clamp = Vec2u(canvas.width - 1, canvas.height - 1);
 
     //Finds the minimum and maximum points of the triangle
     for point in &points {
         for index in 0..2 {
-            bounding_box_min.set(index, max_float(0.0, min_float(bounding_box_min.get(index), point.get(index))));
-            bounding_box_max.set(index, min_float(clamp.get(index), max_float(bounding_box_max.get(index), point.get(index))));
+            bounding_box_min.set(index, cmp::max(0, cmp::min(bounding_box_min.get(index), point.get(index))));
+            bounding_box_max.set(index, cmp::min(clamp.get(index), cmp::max(bounding_box_max.get(index), point.get(index))));
         }
     }
 
     //Loops through points in bounding box
-    for x in (bounding_box_min.0 as i32)..(bounding_box_max.0 + 1.0) as i32 {
-        for y in (bounding_box_min.1) as i32..(bounding_box_max.1 + 1.0) as i32 {
+    for x in (bounding_box_min.0)..(bounding_box_max.0 + 1) {
+        for y in (bounding_box_min.1)..(bounding_box_max.1 + 1) {
             let barycentric_point = barycentric(x as f32, y as f32, &points);
             //If the barycentric point is negative the point is outside of the triangle
             if barycentric_point.0 < 0.0 || barycentric_point.1 < 0.0 || barycentric_point.2 < 0.0 {
@@ -43,14 +44,55 @@ pub fn draw_triangle(points: Vec<Vec3>, zbuffer: &mut Vec<f32>, canvas: &mut Can
             }
             //Finds the z value of the current point
             let mut z = 0.0;
-            for index in 0i32..3 {
-                z += points[index as usize].get(2) * barycentric_point.get(index);
+            for index in 0..3 {
+                z += points[index].get(2) as f32 * barycentric_point.get(index);
             }
 
             //Colors points in triangle if the z index is greater than the current z
             if zbuffer[x as usize + y as usize * canvas.width] < z {
                 zbuffer[x as usize + y as usize * canvas.width] = z;
-                canvas.set(color.clone(), x, y);
+                canvas.set(x, y, color.clone());
+            }
+        }
+    }
+}
+
+//Draws a triangle on a canvas given its vertices
+pub fn draw_triangle_model(points: Vec<Vec3u>, shader: &Shader, model: &Model, zbuffer: &mut Vec<f32>, canvas: &mut Canvas) {
+    //Mutable min and max of the bounding box
+    let mut bounding_box_min = Vec2u(canvas.width - 1, canvas.height - 1);
+    let mut bounding_box_max = Vec2u(0, 0);
+    
+    //Used to clamp the bounding box
+    let clamp = Vec2u(canvas.width - 1, canvas.height - 1);
+
+    //Finds the minimum and maximum points of the triangle
+    for point in &points {
+        for index in 0..2 {
+            bounding_box_min.set(index, cmp::max(0, cmp::min(bounding_box_min.get(index), point.get(index))));
+            bounding_box_max.set(index, cmp::min(clamp.get(index), cmp::max(bounding_box_max.get(index), point.get(index))));
+        }
+    }
+
+    //Loops through points in bounding box
+    for x in (bounding_box_min.0)..(bounding_box_max.0 + 1) {
+        for y in (bounding_box_min.1)..(bounding_box_max.1 + 1) {
+            let barycentric_point = barycentric(x as f32, y as f32, &points);
+            //If the barycentric point is negative the point is outside of the triangle
+            if barycentric_point.0 < 0.0 || barycentric_point.1 < 0.0 || barycentric_point.2 < 0.0 {
+                continue;
+            }
+            //Finds the z value of the current point
+            let mut z = 0.0;
+            for index in 0..3 {
+                z += points[index].get(2) as f32 * barycentric_point.get(index);
+            }
+
+            //Colors points in triangle if the z index is greater than the current z
+            if zbuffer[x + y * canvas.width] < z {
+                let color = shader.compute_color(&barycentric_point, model);
+                zbuffer[x + y * canvas.width] = z;
+                canvas.set(x, y, color);
             }
         }
     }

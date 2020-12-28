@@ -21,7 +21,7 @@ impl Canvas {
     }
 
     //Gets a reference to a Color in the Canvas
-    pub fn get(&self, x: i32, y: i32) -> Option<&Color> {
+    pub fn get(&self, x: usize, y: usize) -> Option<&Color> {
         if self.in_bounds(x, y) {
             let index = self.width * (y as usize) + (self.width - (x as usize) - 1) % self.width;
             Some(&self.contents[index])
@@ -32,16 +32,16 @@ impl Canvas {
     }
 
     //Sets the color of a pixel in the Canvas
-    pub fn set(&mut self, color: Color, x: i32, y: i32) {
+    pub fn set(&mut self, x: usize, y: usize, color: Color) {
         if self.in_bounds(x, y) {
-            let index = self.width * (y as usize) + (self.width - (x as usize) - 1) % self.width;
+            let index = self.width * y + (self.width - x - 1) % self.width;
             self.contents[index] = color;
         }
     }
 
     //Checks if given coordinates are in the canvas bounds
-    fn in_bounds(&self, x: i32, y: i32) -> bool {
-        if x > (self.width - 1) as i32 || y > (self.height - 1) as i32 || x < 0 || y < 0 {
+    fn in_bounds(&self, x: usize, y: usize) -> bool {
+        if x > (self.width - 1) || y > (self.height - 1) || x < 0 || y < 0 {
             false
         }
         else {
