@@ -165,7 +165,7 @@ impl<'a> Mul<&'a Vec3> for f32 {
     }
 }
 
-//VecA * VecA
+//Vec3 * Vec3
 impl Mul for Vec3 {
     type Output = Vec3;
     
@@ -173,7 +173,7 @@ impl Mul for Vec3 {
         Vec3((self.1 * other.2) - (self.2 * other.1), (self.2 * other.0) - (self.0 * other.2), (self.0 * other.1) - (self.1 * other.0))
     }
 }
-//&VecA * &VecA
+//&Vec3 * &Vec3
 impl<'a, 'b> Mul<&'b Vec3> for &'a Vec3 {
     type Output = Vec3;
     
@@ -181,7 +181,7 @@ impl<'a, 'b> Mul<&'b Vec3> for &'a Vec3 {
         Vec3((self.1 * other.2) - (self.2 * other.1), (self.2 * other.0) - (self.0 * other.2), (self.0 * other.1) - (self.1 * other.0))
     }
 }
-//&VecA * VecA
+//&Vec3 * Vec3
 impl<'a> Mul<Vec3> for &'a Vec3 {
     type Output = Vec3;
     
@@ -189,11 +189,33 @@ impl<'a> Mul<Vec3> for &'a Vec3 {
         Vec3((self.1 * other.2) - (self.2 * other.1), (self.2 * other.0) - (self.0 * other.2), (self.0 * other.1) - (self.1 * other.0))
     }
 }
-//VecA * &VecA
+//Vec3 * &Vec3
 impl<'a> Mul<&'a Vec3> for Vec3 {
     type Output = Vec3;
     
     fn mul(self, other: &'a Vec3) -> Vec3 {
         Vec3((self.1 * other.2) - (self.2 * other.1), (self.2 * other.0) - (self.0 * other.2), (self.0 * other.1) - (self.1 * other.0))
+    }
+}
+
+//Vec2 is a wrapper for a Tuple of 2 f32s
+#[derive(Debug, PartialEq, Clone)]
+pub struct Vec2(pub f32, pub f32);
+
+impl Vec2 {
+    pub fn get(&self, index: i32) -> f32 {
+        match index {
+            0 => self.0,
+            1 => self.1,
+            _ => panic!("Index is out of Vec2 range"),
+        }
+    }
+
+    pub fn set(&mut self, index: i32, value: f32) {
+        match index {
+            0 => self.0 = value,
+            1 => self.1 = value,
+            _ => panic!("Index is out of Vec2 range"),
+        }
     }
 }

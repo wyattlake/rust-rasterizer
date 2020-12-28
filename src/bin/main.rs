@@ -12,12 +12,12 @@ fn main() {
     let mut canvas = Canvas::new(WIDTH, HEIGHT);
 
     let file = File::open("src/models/teapot.obj").unwrap();
-    let mut model = Model::new(file);
+    let model = Model::new(file);
 
     println!("Render started...");
     let now = Instant::now();
 
-    render_wireframe(&model, &mut canvas);
+    render_model(&model, &mut canvas);
 
     let duration = now.elapsed();
     println!("Image successfully rendered");
