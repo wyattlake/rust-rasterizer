@@ -1,7 +1,6 @@
 use crate::core::vector::*;
-use crate::core::color::Color;
-use crate::core::canvas::Canvas;
 use crate::rendering::obj::*;
+use image::{ImageBuffer, Rgb};
 use std::cmp;
 
 //Converts a point to barycentric coordinates
@@ -18,13 +17,16 @@ pub fn barycentric(x: f32, y: f32, points: &Vec<Vec3u>) -> Vec3f {
 }
 
 //Draws a triangle on a canvas given its vertices
-pub fn draw_triangle(points: Vec<Vec3u>, zbuffer: &mut Vec<f32>, canvas: &mut Canvas, color: &Color) {
+pub fn draw_triangle(points: Vec<Vec3u>, zbuffer: &mut Vec<f32>, image: &mut ImageBuffer::<Rgb<u8>, Vec<u8>>, color: &[u8; 3]) {
+    let image_width = image.width() as usize;
+    let image_height = image.height() as usize;
+
     //Mutable min and max of the bounding box
-    let mut bounding_box_min = Vec2u(canvas.width - 1, canvas.height - 1);
+    let mut bounding_box_min = Vec2u(image_width - 1, image_height as usize - 1);
     let mut bounding_box_max = Vec2u(0, 0);
     
     //Used to clamp the bounding box
-    let clamp = Vec2u(canvas.width - 1, canvas.height - 1);
+    let clamp = Vec2u(image_width - 1, image_height - 1);
 
     //Finds the minimum and maximum points of the triangle
     for point in &points {
@@ -49,22 +51,25 @@ pub fn draw_triangle(points: Vec<Vec3u>, zbuffer: &mut Vec<f32>, canvas: &mut Ca
             }
 
             //Colors points in triangle if the z index is greater than the current z
-            if zbuffer[x as usize + y as usize * canvas.width] < z {
-                zbuffer[x as usize + y as usize * canvas.width] = z;
-                canvas.set(x, y, color.clone());
+            if zbuffer[x as usize + y as usize * image_width] < z {
+                zbuffer[x as usize + y as usize * image_width] = z;
+                image.get_pixel_mut(x as u32, y as u32).0 = color.clone();
             }
         }
     }
 }
 
 //Draws a triangle on a canvas given its vertices
-pub fn draw_triangle_model(points: Vec<Vec3u>, shader: &Shader, model: &Model, zbuffer: &mut Vec<f32>, canvas: &mut Canvas) {
+pub fn draw_triangle_model(points: Vec<Vec3u>, shader: &Shader, model: &Model, zbuffer: &mut Vec<f32>, image: &mut ImageBuffer::<Rgb<u8>, Vec<u8>>) {
+    let image_width = image.width() as usize;
+    let image_height = image.height() as usize;
+
     //Mutable min and max of the bounding box
-    let mut bounding_box_min = Vec2u(canvas.width - 1, canvas.height - 1);
+    let mut bounding_box_min = Vec2u(image_width - 1, image_height - 1);
     let mut bounding_box_max = Vec2u(0, 0);
     
     //Used to clamp the bounding box
-    let clamp = Vec2u(canvas.width - 1, canvas.height - 1);
+    let clamp = Vec2u(image_width - 1, image_height - 1);
 
     //Finds the minimum and maximum points of the triangle
     for point in &points {
@@ -89,10 +94,10 @@ pub fn draw_triangle_model(points: Vec<Vec3u>, shader: &Shader, model: &Model, z
             }
 
             //Colors points in triangle if the z index is greater than the current z
-            if zbuffer[x + y * canvas.width] < z {
+            if zbuffer[x + y * image_width] < z {
                 let color = shader.compute_color(&barycentric_point, model);
-                zbuffer[x + y * canvas.width] = z;
-                canvas.set(x, y, color);
+                zbuffer[x + y * image_width] = z;
+                image.get_pixel_mut(x as u32, y as u32).0 = color;
             }
         }
     }

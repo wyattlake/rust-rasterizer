@@ -1,16 +1,16 @@
-use rust_rasterizer::core::canvas::Canvas;
 use rust_rasterizer::rendering::obj::*;
 use image::io::Reader as ImageReader;
+use image::{ImageBuffer, Rgb, DynamicImage};
 use std::time::Instant;
 use std::fs::File;
 
-fn main() {
-    //Width and height of the scene
-    const WIDTH: usize = 500;
-    const HEIGHT: usize = 500;
+//Width and height of the scene
+const WIDTH: u32 = 1000;
+const HEIGHT: u32 = 1000;
 
-    //Canvas where color is stored
-    let mut canvas = Canvas::new(WIDTH, HEIGHT);
+fn main() {
+    //Image where color is stored
+    let mut image = ImageBuffer::<Rgb<u8>, Vec<u8>>::new(WIDTH, HEIGHT);
 
     let file = File::open("src/models/model.obj").unwrap();
     let mut model = Model::new(file);
@@ -20,7 +20,7 @@ fn main() {
     println!("Render started...");
     let now = Instant::now();
 
-    render_model(&model, &mut canvas);
+    render_model(&model, &mut image);
 
     let duration = now.elapsed();
     println!("Image successfully rendered");
@@ -28,6 +28,5 @@ fn main() {
         "{} milliseconds elapsed.",
         duration.as_secs() * 1000 + u64::from(duration.subsec_millis())
     );
-
-    Canvas::write_file(&mut canvas, "image");
+    DynamicImage::ImageRgb8(image).flipv().save("result.png").unwrap();
 }

@@ -1,9 +1,7 @@
 use crate::core::vector::*;
-use crate::core::color::Color;
-use crate::core::canvas::Canvas;
 use crate::rendering::line::*;
 use crate::rendering::triangle::*;
-use image::{DynamicImage, GenericImageView};
+use image::{DynamicImage, GenericImageView, ImageBuffer, Rgb};
 use std::io::{BufRead, BufReader};
 use std::fs::File;
 
@@ -20,13 +18,14 @@ impl Shader {
         }
     }
 
-    pub fn compute_color(&self, point: &Vec3f, model: &Model) -> Color {
+    pub fn compute_color(&self, point: &Vec3f, model: &Model) -> [u8; 3] {
         if self.uv.len() > 0 {
             let uv = (point.0 * &self.uv[0]) + (point.1 * &self.uv[1]) + (point.2 * &self.uv[2]);
-            self.intensity * model.diffuse(uv)
+            let diffuse = model.diffuse(uv);
+            [(self.intensity * diffuse[0] as f32) as u8, (self.intensity * diffuse[1] as f32) as u8, (self.intensity * diffuse[2] as f32) as u8] 
         }
         else {
-            Color(self.intensity, self.intensity, self.intensity)
+            [(self.intensity * 255.0) as u8, (self.intensity * 255.0) as u8, (self.intensity * 255.0) as u8]
         }
     }
 }
@@ -127,35 +126,37 @@ impl Model {
 
     }
 
-    pub fn diffuse(&self, uv: Vec2f) -> Color {
+    pub fn diffuse(&self, uv: Vec2f) -> [u8; 4] {
         let color = self.diffuse.as_ref().unwrap().get_pixel(uv.0 as u32, uv.1 as u32);
-        Color(color[0] as f32 / 255.0, color[1] as f32 / 255.0, color[2] as f32 / 255.0)
+        [color[0], color[1], color[2], 255]
     }
 }
 
-pub fn render_wireframe(model: &Model, canvas: &mut Canvas) {
+pub fn render_wireframe(model: &Model, image: &mut ImageBuffer::<Rgb<u8>, Vec<u8>>) {
     for index in 0..model.faces.len() {
         let face = &model.faces[index];
+        let image_width = image.width() as f32;
+        let image_height = image.height() as f32;
         for face_index in 0..3 {
             //Finds the position of the current and next vertice
             let v0 = &model.vertices[face[face_index].0 as usize];
             let v1 = &model.vertices[face[(face_index + 1) % 3].0 as usize];
             
             //Coordinates of the first vertice
-            let x0 = ((v0.0 + 1.0) * canvas.width as f32 / 2.0) as i32;
-            let y0 = ((v0.1 + 1.0) * canvas.height as f32 / 2.0) as i32;
+            let x0 = ((v0.0 + 1.0) * image_width / 2.0) as i32;
+            let y0 = ((v0.1 + 1.0) * image_height / 2.0) as i32;
 
             //Coordinates of the second vertice
-            let x1 = ((v1.0 + 1.0) * canvas.width as f32 / 2.0) as i32;
-            let y1 = ((v1.1 + 1.0) * canvas.height as f32 / 2.0) as i32;
+            let x1 = ((v1.0 + 1.0) * image_width / 2.0) as i32;
+            let y1 = ((v1.1 + 1.0) * image_height / 2.0) as i32;
 
-            draw_line(x0, y0, x1, y1, canvas, &Color(1.0, 1.0, 1.0)); 
+            draw_line(x0, y0, x1, y1, image, &[255, 255, 255]); 
         }
     }
 }
 
-pub fn render_model(model: &Model, canvas: &mut Canvas) {
-    let mut zbuffer: Vec<f32> = vec![-f32::INFINITY; canvas.width * canvas.height];
+pub fn render_model(model: &Model, image: &mut ImageBuffer::<Rgb<u8>, Vec<u8>>) {
+    let mut zbuffer: Vec<f32> = vec![-f32::INFINITY; (image.width()* image.height()) as usize];
     for index in 0..model.faces.len() {
         let mut shader = Shader::new();
         let face = &model.faces[index];
@@ -165,7 +166,7 @@ pub fn render_model(model: &Model, canvas: &mut Canvas) {
         for face_index in 0..3 {
             //Computes the screen and face coordinates for each vertice on the face
             let v = &model.vertices[face[face_index].0];
-            screen_points.push(Vec3f((v.0 + 1.0) * canvas.width as f32 / 2.0, (v.1 + 1.0) * canvas.height as f32 / 2.0, v.2));
+            screen_points.push(Vec3f((v.0 + 1.0) * image.width() as f32 / 2.0, (v.1 + 1.0) * image.height() as f32 / 2.0, v.2));
             world_points.push(v.clone());
             shader.uv.push(model.uv(index, face_index))
         }
@@ -175,10 +176,11 @@ pub fn render_model(model: &Model, canvas: &mut Canvas) {
         shader.intensity = intensity;
         if intensity > 0.0 {
             if !model.diffuse.is_none() {
-                draw_triangle_model(screen_points_u, &shader, model, &mut zbuffer, canvas)
+                draw_triangle_model(screen_points_u, &shader, model, &mut zbuffer, image)
             }
             else {
-                draw_triangle(screen_points_u, &mut zbuffer, canvas, &Color(intensity, intensity, intensity));
+                let intensity_converted = (intensity * 255.0) as u8;
+                draw_triangle(screen_points_u, &mut zbuffer, image, &[intensity_converted, intensity_converted, intensity_converted]);
             }
         }
     }

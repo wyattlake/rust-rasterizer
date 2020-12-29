@@ -1,9 +1,8 @@
-use crate::core::canvas::Canvas;
-use crate::core::color::Color;
+use image::{ImageBuffer, Rgb};
 use std::mem;
 
 //Draws a line on a canvas
-pub fn draw_line(x0_input: i32, y0_input: i32, x1_input: i32, y1_input: i32, canvas: &mut Canvas, color: &Color) {
+pub fn draw_line(x0_input: i32, y0_input: i32, x1_input: i32, y1_input: i32, canvas: &mut ImageBuffer::<Rgb<u8>, Vec<u8>>, color: &[u8; 3]) {
     let mut steep = false;
     let (mut x0, mut x1, mut y0, mut y1): (i32, i32, i32, i32);
 
@@ -39,10 +38,10 @@ pub fn draw_line(x0_input: i32, y0_input: i32, x1_input: i32, y1_input: i32, can
     //Determines coordinates and sets the color on the canvas
     for x in x0..(x1 + 1) {
         if steep {
-            canvas.set(x as usize, y as usize, color.clone());
+            canvas.put_pixel(y as u32, x as u32, Rgb(color.clone()));
         }
         else {
-            canvas.set(x as usize, y as usize, color.clone());
+            canvas.put_pixel(x as u32, y as u32, Rgb(color.clone()));
         }
 
         error2 += derror2;

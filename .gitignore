@@ -2,3 +2,8 @@
 Cargo.lock
 
 src/models/
+
+result.png
+image.ppm
+
+.DS_Store
